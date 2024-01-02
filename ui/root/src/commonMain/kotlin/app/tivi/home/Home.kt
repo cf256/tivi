@@ -4,18 +4,24 @@
 package app.tivi.home
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Subscriptions
@@ -25,12 +31,15 @@ import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.outlined.Weekend
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -41,7 +50,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.tivi.common.compose.HazeScaffold
 import app.tivi.common.compose.LocalStrings
@@ -58,6 +69,8 @@ import com.slack.circuit.overlay.ContentWithOverlays
 import com.slack.circuit.runtime.Navigator
 import com.slack.circuit.runtime.screen.Screen
 import com.slack.circuitx.gesturenavigation.GestureNavigationDecoration
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeChild
 
 @Composable
 internal fun Home(
@@ -77,18 +90,27 @@ internal fun Home(
   val strings = LocalStrings.current
   val navigationItems = remember(strings) { buildNavigationItems(strings) }
 
+  val hazeState = remember { HazeState() }
+
   HazeScaffold(
     bottomBar = {
       if (navigationType == NavigationType.BOTTOM_NAVIGATION) {
-        HomeNavigationBar(
-          selectedNavigation = rootScreen,
-          navigationItems = navigationItems,
-          onNavigationSelected = { navigator.resetRootIfDifferent(it, backstack) },
-          modifier = Modifier.fillMaxWidth(),
-        )
+        Box {
+          HomeNavigationBar(
+            selectedNavigation = rootScreen,
+            navigationItems = navigationItems,
+            onNavigationSelected = { navigator.resetRootIfDifferent(it, backstack) },
+            modifier = Modifier
+              .padding(horizontal = 24.dp)
+              .padding(bottom = 16.dp)
+              .windowInsetsPadding(WindowInsets.navigationBars)
+              .hazeChild(hazeState, shape = MaterialTheme.shapes.large)
+              .fillMaxWidth(),
+          )
+        }
       }
     },
-    blurBottomBar = true,
+    hazeState = hazeState,
     modifier = modifier,
   ) {
     Row(modifier = Modifier.fillMaxSize()) {
@@ -133,16 +155,43 @@ internal fun Home(
 }
 
 @Composable
+fun FloatingNavigationBar(
+  modifier: Modifier = Modifier,
+  shape: Shape = MaterialTheme.shapes.large,
+  containerColor: Color = NavigationBarDefaults.containerColor,
+  contentColor: Color = MaterialTheme.colorScheme.contentColorFor(containerColor),
+  tonalElevation: Dp = NavigationBarDefaults.Elevation,
+  content: @Composable RowScope.() -> Unit,
+) {
+  Surface(
+    color = containerColor,
+    contentColor = contentColor,
+    tonalElevation = tonalElevation,
+    shape = shape,
+    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+    modifier = modifier
+  ) {
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(80.dp)
+        .selectableGroup(),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      content = content
+    )
+  }
+}
+
+@Composable
 private fun HomeNavigationBar(
   selectedNavigation: Screen,
   navigationItems: List<HomeNavigationItem>,
   onNavigationSelected: (Screen) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  NavigationBar(
+  FloatingNavigationBar(
     modifier = modifier,
     containerColor = Color.Transparent,
-    windowInsets = WindowInsets.navigationBars,
   ) {
     for (item in navigationItems) {
       NavigationBarItem(
